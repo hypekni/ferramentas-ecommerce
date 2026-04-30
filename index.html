@@ -430,14 +430,14 @@
     <!-- ══════════════════════════════════════════ CONFIGURAÇÃO ═══ -->
     <section id="configuracao" class="section">
         <div class="card">
-            <h2>Chave de API — Google Gemini</h2>
+            <h2>Chave de API — Groq (gratuita)</h2>
             <div class="form-group">
                 <label for="api-key">Cole sua chave de API aqui:</label>
-                <input type="password" id="api-key" placeholder="AIzaSy..." autocomplete="off">
+                <input type="password" id="api-key" placeholder="gsk_..." autocomplete="off">
             </div>
             <div class="msg msg-info visible">
-                Obtenha sua chave <strong>gratuita</strong> em: <strong>aistudio.google.com/apikey</strong>
-                &nbsp;—&nbsp; a chave fica salva apenas no seu navegador, nunca sai do seu computador.
+                Obtenha sua chave <strong>gratuita</strong> em: <strong>console.groq.com/keys</strong>
+                &nbsp;—&nbsp; crie uma conta, gere uma chave e cole aqui. A chave fica salva apenas no seu navegador, nunca sai do seu computador.
             </div>
         </div>
 
@@ -678,37 +678,69 @@ const Gerador = {
     },
 
     async fetchPageContent(url) {
-        // Tenta carregar via proxy CORS público
-        const proxy = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 20000);
-        try {
-            const res = await fetch(proxy, { signal: controller.signal });
-            clearTimeout(timer);
-            if (!res.ok) throw new Error(`status ${res.status}`);
-            const html = await res.text();
+        const proxies = [
+            `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+            `https://corsproxy.io/?${encodeURIComponent(url)}`,
+            `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+        ];
 
-            // Extrai texto visível
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            ['script','style','nav','footer','header','aside','iframe','noscript','svg'].forEach(tag =>
-                doc.querySelectorAll(tag).forEach(el => el.remove())
-            );
-            let texto = (doc.body?.textContent || '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
-            if (texto.length < 100) throw new Error('Conteúdo insuficiente extraído da página');
-            return texto.substring(0, 12000);
-        } catch (e) {
-            clearTimeout(timer);
-            if (e.name === 'AbortError') throw new Error('Tempo esgotado ao carregar a página');
-            throw e;
+        let lastError = null;
+        for (const proxy of proxies) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 20000);
+            try {
+                const res = await fetch(proxy, { signal: controller.signal });
+                clearTimeout(timer);
+                if (!res.ok) { lastError = new Error(`status ${res.status}`); continue; }
+                const html = await res.text();
+
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+
+                // Remove ruído estrutural
+                ['script','style','nav','footer','header','aside','iframe','noscript','svg'].forEach(tag =>
+                    doc.querySelectorAll(tag).forEach(el => el.remove())
+                );
+
+                // Remove seções de produtos relacionados/recomendados pelo atributo de classe
+                const noisePatterns = /related|recommend|similar|carousel|suggestion|também|viu|comprou|patrocin|banner|popup|modal|cookie|breadcrumb|review|comment|rating|avalia|nota-|share|social|newsletter/i;
+                doc.querySelectorAll('[class],[id]').forEach(el => {
+                    const label = (el.className || '') + ' ' + (el.id || '');
+                    if (noisePatterns.test(label)) el.remove();
+                });
+
+                // Tenta priorizar área principal do produto
+                const mainSelectors = [
+                    '[class*="product-detail"]','[class*="product_detail"]',
+                    '[class*="product-info"]','[class*="product_info"]',
+                    '[class*="product-main"]','[class*="product_main"]',
+                    '[class*="produto"]','[id*="produto"]',
+                    'main','article','[role="main"]'
+                ];
+                let texto = '';
+                for (const sel of mainSelectors) {
+                    const el = doc.querySelector(sel);
+                    if (el) { texto = el.textContent; break; }
+                }
+                if (texto.length < 200) texto = doc.body?.textContent || '';
+
+                texto = texto.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+                if (texto.length < 100) { lastError = new Error('Conteúdo insuficiente extraído da página'); continue; }
+                return texto.substring(0, 12000);
+            } catch (e) {
+                clearTimeout(timer);
+                lastError = e.name === 'AbortError' ? new Error('Tempo esgotado ao carregar a página') : e;
+            }
         }
+        throw lastError;
     },
 
     async generate() {
-        const apiKey = Config.get('ec_apikey');
+        const apiKey = document.getElementById('api-key').value.trim() || Config.get('ec_apikey');
         const plat   = document.getElementById('plataforma').value;
 
         if (!apiKey) { this.showError('Configure sua chave de API na aba ⚙ Configuração.'); return; }
+        localStorage.setItem('ec_apikey', apiKey);
 
         this.showError('');
         let ficha = '';
@@ -758,54 +790,91 @@ const Gerador = {
         const descricoes = localStorage.getItem('ec_descricoes')   || DEFAULTS.modeloDescricoes;
         const nomeLoja   = localStorage.getItem('ec_nomeloja')     || DEFAULTS.nomeLoja;
         const maxTitle   = plat === 'ml' ? 60 : 120;
+        const minTitle   = plat === 'ml' ? 50 : 100;
         const platNome   = plat === 'ml' ? 'Mercado Livre' : 'Shopee';
         const fichaLabel = isUrl
-            ? 'CONTEÚDO DA PÁGINA DO PRODUTO (extraia as informações relevantes para montar o anúncio)'
+            ? 'CONTEÚDO DA PÁGINA DO PRODUTO'
             : 'FICHA TÉCNICA DO PRODUTO';
+        const fichaInstrucao = isUrl
+            ? `ATENÇÃO — esta página pode conter vários produtos (relacionados, recomendados, navegação).
+Seu primeiro passo OBRIGATÓRIO é identificar o produto PRINCIPAL da página (o produto que está sendo vendido/detalhado, não os sugeridos).
+Use SOMENTE as informações desse produto principal. Ignore completamente qualquer outro produto mencionado na página.`
+            : `Use todas as informações desta ficha para gerar o conteúdo.`;
 
         return `Você é um especialista em e-commerce brasileiro para ${platNome}.
-Aprenda os padrões dos exemplos abaixo e aplique-os ao novo produto.
 
-━━━ EXEMPLOS DE TÍTULOS (máximo ${maxTitle} caracteres cada) ━━━
+REGRA FUNDAMENTAL: os exemplos abaixo são APENAS referência de estilo, estrutura e formato.
+Todo o conteúdo gerado deve vir EXCLUSIVAMENTE das informações da ficha técnica do produto.
+NUNCA copie, misture ou adapte dados (nomes, medidas, marcas, especificações) dos exemplos para o produto novo.
+
+━━━ REFERÊNCIA DE ESTILO — TÍTULOS (use apenas como padrão de formato e capitalização) ━━━
 ${titulos}
 
-━━━ EXEMPLOS DE SKU (máximo 30 caracteres cada) ━━━
+━━━ REFERÊNCIA DE ESTILO — SKU (use apenas como padrão de formato) ━━━
 ${skus}
 
-━━━ EXEMPLOS DE DESCRIÇÃO COMPLETA ━━━
+━━━ REFERÊNCIA DE ESTILO — DESCRIÇÃO (use apenas como padrão de estrutura e tom de escrita) ━━━
 ${descricoes}
 
 ━━━ ${fichaLabel} ━━━
+${fichaInstrucao}
+
 ${ficha}
 
 ━━━ INSTRUÇÕES ━━━
-Com base nas informações acima, gere o título, SKU e descrição seguindo EXATAMENTE o padrão e estilo dos exemplos.
-- Título: máximo ${maxTitle} caracteres; siga o padrão de capitalização e seleção de palavras dos exemplos.
-- SKU: máximo 30 caracteres; siga o padrão dos exemplos.
-- Descrição: estrutura idêntica às descrições de exemplo (abertura, diferenciais, destaques, especificações, conteúdo da caixa, aplicações, fechamento padrão).
-- No fechamento da descrição use "${nomeLoja}" como nome da loja.
-- Responda SOMENTE com o conteúdo entre os marcadores — sem comentários, sem explicações.
+Gere título, SKU e descrição usando SOMENTE as informações do produto principal identificado acima.
 
----TITULO---
-[escreva o título aqui]
+TÍTULO — REGRAS OBRIGATÓRIAS:
+- Mínimo ${minTitle} e máximo ${maxTitle} caracteres (conte caractere por caractere, incluindo espaços).
+- Empilhe o máximo de atributos do produto até chegar em ${maxTitle} caracteres: marca + nome do produto + modelo + função principal + material + potência/voltagem/capacidade + cor + diferenciais (ex: "profissional", "industrial", "com filtro HEPA", "bivolt").
+- Prioridade de atributos: (1) marca, (2) nome do produto, (3) modelo, (4) função/uso, (5) especificação técnica principal, (6) demais atributos até encher.
+- NUNCA deixe espaço sobrando — se ainda não atingiu ${maxTitle} caracteres, adicione mais um atributo real do produto.
+- Siga o padrão de capitalização dos exemplos de referência.
+- Exemplo ML (60 chars): "Aspirador Pó Industrial Vonder 1600W 30L Filtro HEPA Bivolt"
+- Exemplo Shopee (120 chars): "Aspirador de Pó Industrial Vonder ASP-1600W 30 Litros Filtro HEPA Auto-Limpeza Rodízios com Freio Profissional Bivolt"
 
----SKU---
-[escreva o sku aqui]
+SKU — REGRAS OBRIGATÓRIAS:
+- Formato: [nome do produto] [marca1] [marca2] [marca3]...
+- Conteúdo: SOMENTE o nome do produto seguido de marcas concorrentes separados por espaço. Nada mais — sem modelo, sem cor, sem voltagem, sem números.
+- Exemplo: para um aspirador Vonder → "aspirador vonder electrolux karcher philco"
+- Mínimo 25 e máximo 30 caracteres.
+- Apenas letras e espaços; tudo em minúsculas; sem hífens, números ou caracteres especiais.
 
----DESCRICAO---
-[escreva a descrição completa aqui]`;
+DESCRIÇÃO — REGRAS OBRIGATÓRIAS:
+- Use a mesma estrutura dos exemplos: abertura, diferenciais, destaques em tópicos, especificações técnicas, conteúdo da caixa, aplicações indicadas, fechamento.
+- Todo dado técnico (medidas, potência, material, capacidade, etc.) deve vir da ficha técnica — nunca invente ou copie dos exemplos.
+- No fechamento use "${nomeLoja}" como nome da loja.
+
+Responda EXATAMENTE neste formato, sem alterar os marcadores:
+
+@@TITULO@@
+[título aqui]
+@@FIMTITULO@@
+
+@@SKU@@
+[sku aqui]
+@@FIMSKU@@
+
+@@DESCRICAO@@
+[descrição completa aqui]
+@@FIMDESCRICAO@@`;
     },
 
     async callGemini(apiKey, ficha, plat, isUrl) {
         const prompt = this.buildPrompt(ficha, plat, isUrl);
         const res = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+            'https://api.groq.com/openai/v1/chat/completions',
             {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { temperature: 0.35, maxOutputTokens: 3500 }
+                    model: 'llama-3.3-70b-versatile',
+                    messages: [{ role: 'user', content: prompt }],
+                    temperature: 0.35,
+                    max_tokens: 3500
                 })
             }
         );
@@ -813,42 +882,54 @@ Com base nas informações acima, gere o título, SKU e descrição seguindo EXA
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
             const msg = err.error?.message || `Erro ${res.status}`;
-            if (res.status === 400 && msg.includes('API_KEY')) throw new Error('Chave de API inválida. Verifique na aba Configuração.');
-            if (res.status === 401 || res.status === 403)      throw new Error('Chave de API inválida ou sem permissão.');
-            if (res.status === 429)  throw new Error('Limite de uso da API atingido. Aguarde alguns minutos e tente novamente.');
+            if (res.status === 401 || res.status === 403) throw new Error('Chave de API inválida. Verifique na aba Configuração.');
+            if (res.status === 429) throw new Error('Limite de uso da API atingido. Aguarde alguns minutos e tente novamente.');
             throw new Error(msg);
         }
 
         const data = await res.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const text = data.choices?.[0]?.message?.content || '';
         if (!text) throw new Error('Nenhum conteúdo gerado. Tente novamente.');
 
         return this.parse(text);
     },
 
     parse(text) {
-        const extract = tag => {
-            const re = new RegExp(`---${tag}---\\s*([\\s\\S]*?)(?=---|$)`, 'i');
+        const extract = (open, close) => {
+            const re = new RegExp(`${open}\\s*([\\s\\S]*?)\\s*${close}`, 'i');
             const m = text.match(re);
-            return m ? m[1].trim() : '(não gerado — tente novamente)';
+            return m ? m[1].trim() : '';
         };
-        return { titulo: extract('TITULO'), sku: extract('SKU'), descricao: extract('DESCRICAO') };
+        return {
+            titulo:   extract('@@TITULO@@',    '@@FIMTITULO@@'),
+            sku:      extract('@@SKU@@',       '@@FIMSKU@@'),
+            descricao:extract('@@DESCRICAO@@', '@@FIMDESCRICAO@@'),
+        };
     },
 
     display({ titulo, sku, descricao }, plat) {
         const maxTitle = plat === 'ml' ? 60 : 120;
+        const minTitle = plat === 'ml' ? 50 : 100;
 
+        if (!titulo || !sku || !descricao) {
+            this.showError('A IA não seguiu o formato esperado. Tente gerar novamente.');
+            if (!titulo) titulo = '(não gerado — tente novamente)';
+            if (!sku)    sku    = '(não gerado — tente novamente)';
+            if (!descricao) descricao = '(não gerado — tente novamente)';
+        }
         document.getElementById('titulo-result').textContent = titulo;
-        const tLen = titulo.length;
-        const tEl  = document.getElementById('titulo-count');
-        tEl.textContent = `${tLen} / ${maxTitle} caracteres`;
-        tEl.className   = 'char-count' + (tLen > maxTitle ? ' over' : tLen > maxTitle * 0.92 ? ' warn' : '');
+        const tLen    = titulo.length;
+        const tEl     = document.getElementById('titulo-count');
+        const tMinOk  = tLen >= minTitle;
+        tEl.textContent = `${tLen} / ${maxTitle} caracteres${!tMinOk ? ` ⚠ mínimo ${minTitle}` : ''}`;
+        tEl.className   = 'char-count' + (tLen > maxTitle ? ' over' : !tMinOk ? ' warn' : '');
 
         document.getElementById('sku-result').textContent = sku;
-        const sLen = sku.length;
-        const sEl  = document.getElementById('sku-count');
-        sEl.textContent = `${sLen} / 30 caracteres`;
-        sEl.className   = 'char-count' + (sLen > 30 ? ' over' : '');
+        const sLen   = sku.length;
+        const sEl    = document.getElementById('sku-count');
+        const sMinOk = sLen >= 25;
+        sEl.textContent = `${sLen} / 30 caracteres${!sMinOk ? ' ⚠ mínimo 25' : ''}`;
+        sEl.className   = 'char-count' + (sLen > 30 ? ' over' : !sMinOk ? ' warn' : '');
 
         document.getElementById('descricao-result').textContent = descricao;
 
