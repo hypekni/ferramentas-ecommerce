@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ferramentas E-commerce — ML & Shopee</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --green:        #1DB954;
+            --green-hover:  #1ed760;
+            --green-dim:    rgba(29,185,84,0.15);
+            --bg:           #121212;
+            --bg-card:      #181818;
+            --bg-elevated:  #282828;
+            --bg-input:     #3E3E3E;
+            --border:       #2a2a2a;
+            --border-mid:   #404040;
+            --text:         #ffffff;
+            --text-mid:     #e0e0e0;
+            --text-dim:     #B3B3B3;
+            --text-muted:   #666;
+            --warn:         #f59e0b;
+            --error:        #ef4444;
+            --radius:       14px;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ── Header ── */
+        header {
+            background: #0a0a0a;
+            border-bottom: 1px solid var(--border);
+            padding: 24px 20px;
+            text-align: center;
+        }
+        header h1 {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+        header h1 span { color: var(--green); }
+        header p { color: var(--text-dim); margin-top: 5px; font-size: 13px; }
+
+        /* ── Tabs ── */
+        .tabs {
+            display: flex;
+            background: #0a0a0a;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.6);
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 14px 8px;
+            border: none;
+            background: none;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            font-family: inherit;
+            letter-spacing: 0.2px;
+        }
+        .tab-btn.active { color: var(--green); border-bottom-color: var(--green); }
+        .tab-btn:hover:not(.active) { background: #1a1a1a; color: var(--text-dim); }
+
+        /* ── Layout ── */
+        .container { max-width: 900px; margin: 0 auto; padding: 22px 16px; }
+        .section { display: none; }
+        .section.active { display: block; }
+
+        /* ── Cards ── */
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 22px;
+            margin-bottom: 18px;
+            border: 1px solid var(--border);
+        }
+        .card h2 {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 18px;
+            color: var(--text);
+            letter-spacing: -0.2px;
+        }
+
+        /* ── Forms ── */
+        .form-group { margin-bottom: 15px; }
+        .form-group:last-of-type { margin-bottom: 0; }
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            font-size: 11px;
+            color: var(--text-dim);
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px 13px;
+            border: 1px solid var(--border-mid);
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+            outline: none;
+            background: var(--bg-input);
+            color: var(--text);
+        }
+        input:focus, textarea:focus, select:focus {
+            border-color: var(--green);
+            background: #484848;
+            box-shadow: 0 0 0 3px var(--green-dim);
+        }
+        input::placeholder, textarea::placeholder { color: var(--text-muted); }
+        textarea { resize: vertical; min-height: 100px; }
+        select option { background: var(--bg-elevated); color: var(--text); }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+        /* ── Buttons ── */
+        .btn {
+            border: none;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.2s, transform 0.1s;
+            padding: 10px 20px;
+            letter-spacing: 0.5px;
+        }
+        .btn:hover { transform: translateY(-1px); }
+        .btn:active { transform: translateY(0) scale(0.98); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+        .btn-primary {
+            background: var(--green);
+            color: #000;
+            width: 100%;
+            font-size: 15px;
+            padding: 14px;
+            margin-top: 6px;
+            font-weight: 800;
+        }
+        .btn-primary:hover { background: var(--green-hover); }
+
+        .btn-copy {
+            background: transparent;
+            color: var(--text-dim);
+            font-size: 11px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--border-mid);
+            letter-spacing: 0.4px;
+        }
+        .btn-copy:hover { background: var(--bg-elevated); color: var(--text); border-color: #666; transform: none; }
+        .btn-copy.copied { background: var(--green); color: #000; border-color: var(--green); }
+
+        .btn-save {
+            background: var(--green);
+            color: #000;
+            padding: 12px 30px;
+            font-size: 14px;
+            margin-top: 6px;
+            font-weight: 800;
+        }
+        .btn-save:hover { background: var(--green-hover); }
+
+        /* ── URL input ── */
+        .url-status { font-size: 12px; margin-top: 7px; padding: 6px 11px; border-radius: 8px; display: none; }
+        .url-status.ok      { display:block; color: var(--green);  background: var(--green-dim); border: 1px solid rgba(29,185,84,0.3); }
+        .url-status.erro    { display:block; color: #f87171;       background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); }
+        .url-status.loading { display:block; color: var(--text-dim); background: var(--bg-elevated); border: 1px solid var(--border-mid); }
+        .link-toggle { font-size: 12px; color: var(--green); text-decoration: none; display: inline-block; margin-top: 8px; }
+        .link-toggle:hover { text-decoration: underline; }
+
+        /* ── Results ── */
+        #gerador-results { display: none; }
+        #calc-results    { display: none; }
+
+        .result-section {
+            border: 1px solid var(--border-mid);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+            background: var(--bg-elevated);
+        }
+        .result-section:last-child { margin-bottom: 0; }
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 9px;
+        }
+        .result-label {
+            font-weight: 700;
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .result-text {
+            font-size: 14px;
+            line-height: 1.7;
+            color: var(--text-mid);
+            white-space: pre-wrap;
+        }
+        .char-count { font-size: 11px; color: var(--text-muted); margin-top: 5px; }
+        .char-count.warn { color: var(--warn); font-weight: 700; }
+        .char-count.over { color: var(--error); font-weight: 700; }
+
+        /* ── Spotify cards ── */
+        .spotcard-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+        }
+        .spotcard {
+            background: var(--bg-elevated);
+            border-radius: var(--radius);
+            padding: 20px 16px 16px;
+            transition: background 0.2s, transform 0.18s;
+            cursor: default;
+        }
+        .spotcard:hover { background: #333; transform: translateY(-4px); }
+        .spotcard-margem {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-dim);
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        .spotcard-price {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 14px;
+            letter-spacing: -0.5px;
+            transition: color 0.2s;
+        }
+        .spotcard:hover .spotcard-price { color: var(--green); }
+        .spotcard-sep { height: 1px; background: var(--border-mid); margin-bottom: 12px; }
+        .spotcard-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+        .spotcard-row:last-child { margin-bottom: 0; }
+        .sp-lbl    { color: var(--text-dim); }
+        .sp-profit { color: var(--green); font-weight: 700; font-size: 13px; }
+        .sp-tax    { color: var(--text-muted); }
+
+        /* ── Loading ── */
+        .loading-wrap { text-align: center; padding: 36px 20px; display: none; }
+        .loading-wrap.visible { display: block; }
+        .spinner {
+            width: 38px; height: 38px;
+            border: 3px solid var(--border-mid);
+            border-top-color: var(--green);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 14px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { color: var(--text-dim); font-size: 14px; font-weight: 600; }
+
+        /* ── Messages ── */
+        .msg {
+            padding: 11px 15px;
+            border-radius: 9px;
+            font-size: 13px;
+            margin-top: 12px;
+            line-height: 1.5;
+            display: none;
+        }
+        .msg.visible  { display: block; }
+        .msg-error    { background: rgba(239,68,68,0.12);  border: 1px solid rgba(239,68,68,0.3);  color: #f87171; }
+        .msg-success  { background: var(--green-dim);      border: 1px solid rgba(29,185,84,0.3); color: var(--green); }
+        .msg-info     { background: rgba(255,255,255,0.05); border: 1px solid var(--border-mid);  color: var(--text-dim); }
+
+        /* ── Responsive ── */
+        @media (max-width: 580px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            header h1 { font-size: 18px; }
+            .tab-btn { font-size: 12px; padding: 12px 4px; }
+            .spotcard-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Ferramentas <span>E-commerce</span></h1>
+    <p>Gerador de Anúncios + Calculadora de Preços — Mercado Livre &amp; Shopee</p>
+</header>
+
+<nav class="tabs">
+    <button class="tab-btn active" data-tab="gerador"      onclick="App.switchTab(this)">&#9997; Gerador</button>
+    <button class="tab-btn"        data-tab="calculadora"  onclick="App.switchTab(this)">&#128184; Calculadora</button>
+    <button class="tab-btn"        data-tab="configuracao" onclick="App.switchTab(this)">&#9881; Configuração</button>
+</nav>
+
+<div class="container">
+
+    <!-- ═══════════════════════════════════════════ GERADOR ═══ -->
+    <section id="gerador" class="section active">
+        <div class="card">
+            <h2>Ficha Técnica do Produto</h2>
+            <!-- Modo URL (padrão) -->
+            <div class="form-group" id="mode-url">
+                <label for="ficha-url">Link do produto:</label>
+                <input type="url" id="ficha-url" placeholder="https://produto.com/ficha-tecnica..." />
+                <div id="url-status" class="url-status"></div>
+                <a href="#" class="link-toggle" onclick="Gerador.toggleMode(event)">ou colar a ficha técnica manualmente</a>
+            </div>
+
+            <!-- Modo texto (fallback) -->
+            <div class="form-group" id="mode-texto" style="display:none">
+                <label for="ficha">Ficha técnica (cole o texto):</label>
+                <textarea id="ficha" rows="9"
+                    placeholder="Marca: Tramontina&#10;Modelo: Solar 1200&#10;Material: Inox&#10;Cor: Prata&#10;Potência: 1200W&#10;..."></textarea>
+                <a href="#" class="link-toggle" onclick="Gerador.toggleMode(event)">ou usar link do produto</a>
+            </div>
+            <div class="form-group">
+                <label for="plataforma">Plataforma</label>
+                <select id="plataforma">
+                    <option value="ml">Mercado Livre (título máx 60 caracteres)</option>
+                    <option value="shopee">Shopee (título máx 120 caracteres)</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" id="btn-gerar" onclick="Gerador.generate()">
+                Gerar Título + Descrição + SKU
+            </button>
+            <div id="gerador-error" class="msg msg-error"></div>
+        </div>
+
+        <div id="gerador-loading" class="loading-wrap">
+            <div class="spinner"></div>
+            <p class="loading-text">Gerando conteúdo...</p>
+        </div>
+
+        <div id="gerador-results">
+            <div class="card">
+                <div class="result-section">
+                    <div class="result-header">
+                        <span class="result-label">Título do Anúncio</span>
+                        <button class="btn btn-copy" onclick="App.copy('titulo-result', this)">Copiar</button>
+                    </div>
+                    <div class="result-text" id="titulo-result"></div>
+                    <div class="char-count" id="titulo-count"></div>
+                </div>
+
+                <div class="result-section">
+                    <div class="result-header">
+                        <span class="result-label">SKU / Identificador</span>
+                        <button class="btn btn-copy" onclick="App.copy('sku-result', this)">Copiar</button>
+                    </div>
+                    <div class="result-text" id="sku-result"></div>
+                    <div class="char-count" id="sku-count"></div>
+                </div>
+
+                <div class="result-section">
+                    <div class="result-header">
+                        <span class="result-label">Descrição Completa</span>
+                        <button class="btn btn-copy" onclick="App.copy('descricao-result', this)">Copiar</button>
+                    </div>
+                    <div class="result-text" id="descricao-result"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════ CALCULADORA ═══ -->
+    <section id="calculadora" class="section">
+        <div class="card">
+            <h2>Calculadora de Preço de Venda</h2>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="custo">Custo do Produto (R$)</label>
+                    <input type="number" id="custo" placeholder="0.00" min="0" step="0.01" oninput="Calculadora.calculate()">
+                </div>
+                <div class="form-group">
+                    <label for="frete">Custo do Frete (R$)</label>
+                    <input type="number" id="frete" placeholder="0.00" min="0" step="0.01" oninput="Calculadora.calculate()">
+                </div>
+            </div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="plat-calc">Plataforma</label>
+                    <select id="plat-calc" onchange="Calculadora.updateTaxas()">
+                        <option value="ml">Mercado Livre</option>
+                        <option value="shopee">Shopee</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="taxa-calc">Taxa da Plataforma</label>
+                    <select id="taxa-calc" onchange="Calculadora.calculate()">
+                        <option value="12">12% — Clásico</option>
+                        <option value="17">17% — Premium</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div id="calc-results">
+            <div id="calc-grid" class="spotcard-grid"></div>
+        </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════ CONFIGURAÇÃO ═══ -->
+    <section id="configuracao" class="section">
+        <div class="card">
+            <h2>Chave de API — Google Gemini</h2>
+            <div class="form-group">
+                <label for="api-key">Cole sua chave de API aqui:</label>
+                <input type="password" id="api-key" placeholder="AIzaSy..." autocomplete="off">
+            </div>
+            <div class="msg msg-info visible">
+                Obtenha sua chave <strong>gratuita</strong> em: <strong>aistudio.google.com/apikey</strong>
+                &nbsp;—&nbsp; a chave fica salva apenas no seu navegador, nunca sai do seu computador.
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Nome da Loja</h2>
+            <div class="form-group">
+                <label for="nome-loja">Aparece no fechamento das descrições:</label>
+                <input type="text" id="nome-loja" placeholder="Ex: Reforma Express">
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Modelos de Exemplo</h2>
+            <p style="font-size:13px;color:var(--text-light);margin-bottom:18px;line-height:1.6">
+                A IA aprende seu estilo com base nestes exemplos. Os campos abaixo já vieram
+                pré-carregados com seus arquivos de modelo — altere quando quiser.
+            </p>
+
+            <div class="form-group">
+                <label for="modelo-titulos">Títulos de Exemplo (um por linha, máx 60 chars):</label>
+                <textarea id="modelo-titulos" rows="7"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="modelo-skus">SKUs de Exemplo (um por linha, máx 30 chars):</label>
+                <textarea id="modelo-skus" rows="5"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="modelo-descricoes">Descrições de Exemplo (separe os exemplos com uma linha contendo apenas "---"):</label>
+                <textarea id="modelo-descricoes" rows="18"></textarea>
+            </div>
+
+            <button class="btn btn-save" onclick="Config.save()">Salvar Configurações</button>
+            <div id="config-ok" class="msg msg-success">Configurações salvas com sucesso!</div>
+        </div>
+    </section>
+
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════ DEFAULTS
+const DEFAULTS = {
+    nomeLoja: 'Reforma Express',
+
+    modeloTitulos: `Aspirador Pó Partícula Fina Profissional Eurotechniker
+Bituqueira Removível Em Metal Pintura Dupla Ação
+Cinzeiro De Metal Com Tampa Removivel De Prender Na Parede
+Kit Pistola De Projetada Bailéu 4.0 + Brindes
+Mata Cupim Cupinicida Exterminador De Cupim Mococa 5 Litros`,
+
+    modeloSkus: `kit pistola sharpshoote baileu
+Pistola devilbiss puma italco
+tinta imã rustoleum suvinil
+eliminador cupim jimo montana`,
+
+    modeloDescricoes: `Aspirador Industrial Eurotechniker ASP-1600 – Alta Potência e Desempenho Profissional
+
+Apresentamos o Aspirador de Pó Profissional Eurotechniker ASP-1600, desenvolvido para oferecer qualidade e desempenho excepcionais. Ideal para extração de pó em marcenarias, funilarias, oficinas, construção civil e limpezas industriais, é a escolha perfeita para profissionais exigentes que não abrem mão de produtividade, um ambiente limpo e saúde no trabalho.
+
+Fabricado com materiais de alta resistência, este equipamento garante durabilidade e robustez incomparáveis. O design inteligente conta com gavetas de armazenamento e rodízios com freios, proporcionando maior mobilidade, organização e conforto durante o uso, reduzindo a fadiga em jornadas prolongadas.
+
+Destaques do produto:
+
+Reservatório com capacidade de 30 litros: Ideal para projetos de grande escala, permitindo longas jornadas de uso sem a necessidade de esvaziamento frequente.
+
+Potência robusta de 1600W: Garante uma extração de pó rápida e extremamente eficiente.
+
+Filtro HEPA incluso: Retém partículas finas e micro-poeira, garantindo um ambiente mais seguro e protegendo a saúde do operador.
+
+Sistema de auto-limpeza do filtro: Mais praticidade para o seu dia a dia e menor necessidade de manutenção.
+
+Gavetas para armazenagem: Organize mangueiras, cabos e acessórios com facilidade diretamente no corpo do aspirador.
+
+Rodízios com freios: Mobilidade total com segurança de travamento em qualquer tipo de piso.
+
+Especificações técnicas:
+• Marca: Eurotechniker
+• Modelo: ASP-1600W
+• Potência: 1600 W
+• Capacidade do recipiente: 30 L
+• Filtro: Padrão HEPA (Alta eficiência)
+• Nível de uso: Profissional / Industrial
+• Design extra: Gavetas organizadoras integradas e rodízios com trava
+
+Conteúdo da caixa:
+• 1 Aspirador Industrial ASP-1600
+• 1 Filtro HEPA de alta performance (instalado)
+• 1 Mangueira de sucção flexível e resistente
+• 1 Kit de rodízios giratórios
+
+Aplicações indicadas:
+
+Extração de poeira fina em lixamentos (funilaria, pintura e marcenaria).
+
+Limpeza pesada em oficinas, galpões e obras.
+
+Aspiração de resíduos em superfícies amplas e ambientes industriais.
+
+Envio imediato com garantia.
+Dúvidas? Fale conosco no campo de perguntas antes de comprar. Nosso atendimento é rápido e especializado.
+
+Nossos produtos são 100% novos, originais e prontos para elevar seus projetos a outro nível. Estamos à disposição para ajudar.
+
+Garantia do vendedor: 1 dia.
+
+---
+
+Bituqueira Cinzeiro de Parede em Metal – Pintura Dupla Ação e Alta Durabilidade
+
+Mantenha a entrada do seu comércio ou condomínio impecável e livre de sujeira, sem perder espaço útil na calçada. A Bituqueira de Parede é a solução definitiva: compacta, segura e com um design elegante para o descarte correto de cigarros, transmitindo uma imagem de organização e cuidado para o seu ambiente.
+
+Diferente das bituqueiras comuns do mercado que enferrujam rapidamente, nosso produto é fabricado com metal resistente e recebe um tratamento exclusivo de Pintura Dupla Ação. A combinação de um fundo preparador especial com uma pintura de alta resistência cria uma barreira poderosa contra o sol, chuva e a maresia, garantindo uma durabilidade muito superior mesmo em áreas totalmente descobertas.
+
+Destaques do produto:
+
+Economia de Espaço Inteligente: Por ficar suspensa, não atrapalha a circulação de pedestres e facilita imensamente a limpeza do chão ao redor.
+
+Máxima Segurança e Fixação: O modelo de parede evita furtos rápidos, tombamentos acidentais e atos de vandalismo (como chutes), problemas muito comuns nos modelos de chão.
+
+Sistema de Limpeza Prático: Esvazie o compartimento em segundos! O fundo removível permite a retirada das bitucas sem a necessidade de desparafusar a estrutura da parede, garantindo higiene total e sem contato com a sujeira.
+
+Design Inteligente Antichuva: A tampa superior foi projetada para proteger a entrada contra a chuva direta, evitando o acúmulo de água no reservatório e prevenindo o mau cheiro.
+
+Especificações técnicas:
+
+Material: Metal Resistente
+
+Acabamento: Pintura Dupla Ação (Tratamento Anti-ferrugem)
+
+Altura: 37 cm
+
+Diâmetro: 6,3 cm
+
+Instalação: Fixação segura por buchas e parafusos na parede
+
+Itens inclusos:
+
+01 Bituqueira Cinzeiro de Parede em Metal (Pintura Dupla Ação)
+
+Aplicações indicadas / Onde instalar:
+
+Entradas de lojas, galerias e comércios
+
+Áreas de fumantes em empresas e indústrias
+
+Portarias de condomínios residenciais e comerciais
+
+Colunas, corredores externos e muros
+
+Dúvidas Frequentes:
+
+Como é feita a instalação? É muito simples. A bituqueira possui furos no suporte traseiro. Basta furar a parede e fixar utilizando buchas e parafusos (instalação rápida e firme).
+
+Envio imediato com garantia.
+Dúvidas? Fale conosco no campo de perguntas antes de comprar. Nosso atendimento é rápido e especializado.
+
+Nossos produtos são 100% novos, originais e prontos para elevar seus projetos a outro nível. Estamos à disposição para ajudar.
+
+Garantia do vendedor: 1 dia.`
+};
+
+// ════════════════════════════════════════════════════════ APP
+const App = {
+    init() {
+        Config.load();
+        Calculadora.updateTaxas();
+        document.body.dataset.tab = 'gerador';
+    },
+
+    switchTab(btn) {
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(tab).classList.add('active');
+        btn.classList.add('active');
+        document.body.dataset.tab = tab;
+    },
+
+    copy(id, btn) {
+        const text = document.getElementById(id).textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            const orig = btn.textContent;
+            btn.textContent = 'Copiado!';
+            btn.classList.add('copied');
+            setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 2200);
+        }).catch(() => {
+            const el = document.getElementById(id);
+            const range = document.createRange();
+            range.selectNode(el);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            alert('Texto selecionado — use Ctrl+C para copiar.');
+        });
+    }
+};
+
+// ════════════════════════════════════════════════════════ CONFIG
+const Config = {
+    save() {
+        localStorage.setItem('ec_apikey',    document.getElementById('api-key').value.trim());
+        localStorage.setItem('ec_nomeloja',  document.getElementById('nome-loja').value.trim());
+        localStorage.setItem('ec_titulos',   document.getElementById('modelo-titulos').value.trim());
+        localStorage.setItem('ec_skus',      document.getElementById('modelo-skus').value.trim());
+        localStorage.setItem('ec_descricoes',document.getElementById('modelo-descricoes').value.trim());
+        const ok = document.getElementById('config-ok');
+        ok.classList.add('visible');
+        setTimeout(() => ok.classList.remove('visible'), 2800);
+    },
+
+    load() {
+        document.getElementById('api-key').value       = localStorage.getItem('ec_apikey')     || '';
+        document.getElementById('nome-loja').value     = localStorage.getItem('ec_nomeloja')   || DEFAULTS.nomeLoja;
+        document.getElementById('modelo-titulos').value   = localStorage.getItem('ec_titulos')    || DEFAULTS.modeloTitulos;
+        document.getElementById('modelo-skus').value      = localStorage.getItem('ec_skus')       || DEFAULTS.modeloSkus;
+        document.getElementById('modelo-descricoes').value= localStorage.getItem('ec_descricoes') || DEFAULTS.modeloDescricoes;
+    },
+
+    get(key) { return localStorage.getItem(key) || ''; }
+};
+
+// ════════════════════════════════════════════════════════ GERADOR
+const Gerador = {
+    mode: 'url',
+
+    toggleMode(e) {
+        e.preventDefault();
+        this.mode = this.mode === 'url' ? 'texto' : 'url';
+        document.getElementById('mode-url').style.display   = this.mode === 'url'   ? 'block' : 'none';
+        document.getElementById('mode-texto').style.display = this.mode === 'texto' ? 'block' : 'none';
+        this.showError('');
+    },
+
+    setUrlStatus(tipo, msg) {
+        const el = document.getElementById('url-status');
+        el.className = `url-status ${tipo}`;
+        el.textContent = msg;
+    },
+
+    async fetchPageContent(url) {
+        // Tenta carregar via proxy CORS público
+        const proxy = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 20000);
+        try {
+            const res = await fetch(proxy, { signal: controller.signal });
+            clearTimeout(timer);
+            if (!res.ok) throw new Error(`status ${res.status}`);
+            const html = await res.text();
+
+            // Extrai texto visível
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            ['script','style','nav','footer','header','aside','iframe','noscript','svg'].forEach(tag =>
+                doc.querySelectorAll(tag).forEach(el => el.remove())
+            );
+            let texto = (doc.body?.textContent || '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+            if (texto.length < 100) throw new Error('Conteúdo insuficiente extraído da página');
+            return texto.substring(0, 12000);
+        } catch (e) {
+            clearTimeout(timer);
+            if (e.name === 'AbortError') throw new Error('Tempo esgotado ao carregar a página');
+            throw e;
+        }
+    },
+
+    async generate() {
+        const apiKey = Config.get('ec_apikey');
+        const plat   = document.getElementById('plataforma').value;
+
+        if (!apiKey) { this.showError('Configure sua chave de API na aba ⚙ Configuração.'); return; }
+
+        this.showError('');
+        let ficha = '';
+        let isUrl = false;
+
+        if (this.mode === 'url') {
+            const url = document.getElementById('ficha-url').value.trim();
+            if (!url) { this.showError('Cole o link do produto no campo acima.'); return; }
+            if (!/^https?:\/\//i.test(url)) { this.showError('Link inválido — deve começar com http:// ou https://'); return; }
+
+            this.setUrlStatus('loading', '⏳ Carregando página...');
+            try {
+                ficha = await this.fetchPageContent(url);
+                this.setUrlStatus('ok', `✓ Página carregada (${ficha.length.toLocaleString('pt-BR')} caracteres)`);
+                isUrl = true;
+            } catch (err) {
+                this.setUrlStatus('erro', '✗ Não foi possível acessar o link: ' + err.message);
+                this.showError('Falha ao carregar a página. Tente "colar a ficha técnica manualmente" abaixo do campo.');
+                return;
+            }
+        } else {
+            ficha = document.getElementById('ficha').value.trim();
+            if (!ficha) { this.showError('Cole a ficha técnica do produto no campo acima.'); return; }
+        }
+
+        const btn = document.getElementById('btn-gerar');
+        btn.disabled = true;
+        btn.textContent = 'Gerando...';
+        document.getElementById('gerador-loading').classList.add('visible');
+        document.getElementById('gerador-results').style.display = 'none';
+
+        try {
+            const result = await this.callGemini(apiKey, ficha, plat, isUrl);
+            this.display(result, plat);
+        } catch (err) {
+            this.showError('Erro: ' + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Gerar Título + Descrição + SKU';
+            document.getElementById('gerador-loading').classList.remove('visible');
+        }
+    },
+
+    buildPrompt(ficha, plat, isUrl) {
+        const titulos    = localStorage.getItem('ec_titulos')      || DEFAULTS.modeloTitulos;
+        const skus       = localStorage.getItem('ec_skus')         || DEFAULTS.modeloSkus;
+        const descricoes = localStorage.getItem('ec_descricoes')   || DEFAULTS.modeloDescricoes;
+        const nomeLoja   = localStorage.getItem('ec_nomeloja')     || DEFAULTS.nomeLoja;
+        const maxTitle   = plat === 'ml' ? 60 : 120;
+        const platNome   = plat === 'ml' ? 'Mercado Livre' : 'Shopee';
+        const fichaLabel = isUrl
+            ? 'CONTEÚDO DA PÁGINA DO PRODUTO (extraia as informações relevantes para montar o anúncio)'
+            : 'FICHA TÉCNICA DO PRODUTO';
+
+        return `Você é um especialista em e-commerce brasileiro para ${platNome}.
+Aprenda os padrões dos exemplos abaixo e aplique-os ao novo produto.
+
+━━━ EXEMPLOS DE TÍTULOS (máximo ${maxTitle} caracteres cada) ━━━
+${titulos}
+
+━━━ EXEMPLOS DE SKU (máximo 30 caracteres cada) ━━━
+${skus}
+
+━━━ EXEMPLOS DE DESCRIÇÃO COMPLETA ━━━
+${descricoes}
+
+━━━ ${fichaLabel} ━━━
+${ficha}
+
+━━━ INSTRUÇÕES ━━━
+Com base nas informações acima, gere o título, SKU e descrição seguindo EXATAMENTE o padrão e estilo dos exemplos.
+- Título: máximo ${maxTitle} caracteres; siga o padrão de capitalização e seleção de palavras dos exemplos.
+- SKU: máximo 30 caracteres; siga o padrão dos exemplos.
+- Descrição: estrutura idêntica às descrições de exemplo (abertura, diferenciais, destaques, especificações, conteúdo da caixa, aplicações, fechamento padrão).
+- No fechamento da descrição use "${nomeLoja}" como nome da loja.
+- Responda SOMENTE com o conteúdo entre os marcadores — sem comentários, sem explicações.
+
+---TITULO---
+[escreva o título aqui]
+
+---SKU---
+[escreva o sku aqui]
+
+---DESCRICAO---
+[escreva a descrição completa aqui]`;
+    },
+
+    async callGemini(apiKey, ficha, plat, isUrl) {
+        const prompt = this.buildPrompt(ficha, plat, isUrl);
+        const res = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { temperature: 0.35, maxOutputTokens: 3500 }
+                })
+            }
+        );
+
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            const msg = err.error?.message || `Erro ${res.status}`;
+            if (res.status === 400 && msg.includes('API_KEY')) throw new Error('Chave de API inválida. Verifique na aba Configuração.');
+            if (res.status === 401 || res.status === 403)      throw new Error('Chave de API inválida ou sem permissão.');
+            if (res.status === 429)  throw new Error('Limite de uso da API atingido. Aguarde alguns minutos e tente novamente.');
+            throw new Error(msg);
+        }
+
+        const data = await res.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        if (!text) throw new Error('Nenhum conteúdo gerado. Tente novamente.');
+
+        return this.parse(text);
+    },
+
+    parse(text) {
+        const extract = tag => {
+            const re = new RegExp(`---${tag}---\\s*([\\s\\S]*?)(?=---|$)`, 'i');
+            const m = text.match(re);
+            return m ? m[1].trim() : '(não gerado — tente novamente)';
+        };
+        return { titulo: extract('TITULO'), sku: extract('SKU'), descricao: extract('DESCRICAO') };
+    },
+
+    display({ titulo, sku, descricao }, plat) {
+        const maxTitle = plat === 'ml' ? 60 : 120;
+
+        document.getElementById('titulo-result').textContent = titulo;
+        const tLen = titulo.length;
+        const tEl  = document.getElementById('titulo-count');
+        tEl.textContent = `${tLen} / ${maxTitle} caracteres`;
+        tEl.className   = 'char-count' + (tLen > maxTitle ? ' over' : tLen > maxTitle * 0.92 ? ' warn' : '');
+
+        document.getElementById('sku-result').textContent = sku;
+        const sLen = sku.length;
+        const sEl  = document.getElementById('sku-count');
+        sEl.textContent = `${sLen} / 30 caracteres`;
+        sEl.className   = 'char-count' + (sLen > 30 ? ' over' : '');
+
+        document.getElementById('descricao-result').textContent = descricao;
+
+        const results = document.getElementById('gerador-results');
+        results.style.display = 'block';
+        results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    },
+
+    showError(msg) {
+        const el = document.getElementById('gerador-error');
+        el.textContent = msg;
+        el.classList.toggle('visible', !!msg);
+    }
+};
+
+// ════════════════════════════════════════════════════════ CALCULADORA
+const Calculadora = {
+    updateTaxas() {
+        const plat   = document.getElementById('plat-calc').value;
+        const select = document.getElementById('taxa-calc');
+        select.innerHTML = plat === 'ml'
+            ? '<option value="12">12% — Clásico</option><option value="17">17% — Premium</option>'
+            : '<option value="14">14% — Padrão</option><option value="20">20% — Com Anúncio/Boost</option>';
+        this.calculate();
+    },
+
+    calculate() {
+        const custo = parseFloat(document.getElementById('custo').value)   || 0;
+        const frete = parseFloat(document.getElementById('frete').value)   || 0;
+        const taxa  = parseInt(document.getElementById('taxa-calc').value) || 12;
+
+        if (custo <= 0) { document.getElementById('calc-results').style.display = 'none'; return; }
+
+        const base    = custo + frete;
+        const margens = [10, 15, 20, 25, 30, 35];
+        const fmt     = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+        const cards = margens.map(m => {
+            const d = 1 - taxa / 100 - m / 100;
+            if (d <= 0) return `<div class="spotcard"><div class="spotcard-margem">Margem ${m}%</div><div class="spotcard-price">—</div></div>`;
+            const preco = base / d;
+            const lucro = preco * m   / 100;
+            const taxaV = preco * taxa / 100;
+            return `<div class="spotcard">
+                <div class="spotcard-margem">Margem ${m}%</div>
+                <div class="spotcard-price">${fmt(preco)}</div>
+                <div class="spotcard-sep"></div>
+                <div class="spotcard-row"><span class="sp-lbl">Lucro</span><span class="sp-profit">${fmt(lucro)}</span></div>
+                <div class="spotcard-row"><span class="sp-lbl">Taxa</span><span class="sp-tax">${fmt(taxaV)}</span></div>
+            </div>`;
+        }).join('');
+
+        document.getElementById('calc-grid').innerHTML = cards;
+        document.getElementById('calc-results').style.display = 'block';
+    }
+};
+
+// ════════════════════════════════════════════════════════ INIT
+window.addEventListener('DOMContentLoaded', () => App.init());
+</script>
+</body>
+</html>
